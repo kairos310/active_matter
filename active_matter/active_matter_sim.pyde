@@ -1,12 +1,22 @@
 import time
 t = 0
 birds = []
-temperature = 0
+T = 0
 corrlength = 0
 numbirds = 100
 
 def randomVec(x,y):
     return PVector(random(x),random(y))
+
+def energy(a,b):
+    return cos(a.dir - b.dir)
+    
+def partition_function():
+    sum = 0
+    for a in birds:
+        for b in birds:
+            sum = exp(- energy(a,b)/T)
+    return sum
 
 class Plot:
     def __init__(self, arr):
@@ -22,12 +32,20 @@ class Plot:
     
 
 def drawDistribution():
-    numbins = 10
+    bins = []
+    numbins = 30
     binsize = TWO_PI / numbins
-    
     for b in range(numbins):
-        y = 20 * noise(millis() / 100 + b)
-        rect(b * width/ numbins, 500 - y, width/numbins, y)
+        bins.append(0)
+    for a in birds:
+        #print(floor((a.dir.heading() % TWO_PI)/ TWO_PI * numbins))
+        bins[floor((a.dir.heading() % TWO_PI) / TWO_PI * numbins)] += 1
+    
+    i = 0
+    for b in bins:
+        y = 2 * b
+        rect(i * width/ numbins, 500 - y, width/numbins, y)
+        i += 1
     
 def avgDir(arr):
     sum = PVector(0,0)
@@ -50,9 +68,8 @@ class Bird:
         #noisevec = PVector(random(-1,1), random(-1,1))
         noisevec = PVector(1,0)
         noisevec.rotate(random(-PI,PI))
-        temp = temperature if temperature < 0.9 else 1.
-        noisevec.setMag(temp)
-        diff.setMag(1. - temp)
+        noisevec.setMag(T)
+        diff.setMag(1. - T)
         diff.add(noisevec)
         diff.setMag(0.1)
         
@@ -104,9 +121,10 @@ def neighboravg(a,radius):
  
 def draw():
     background(50)
-    global temperature
+    global T
     global corrlength
-    temperature = mouseX / 500.
+    T = mouseX / 500.
+    T = T if T < 0.9 else 1.
     corrlength = (1 - mouseY / 500.) * 100
     for b in birds:
         noFill()
@@ -128,6 +146,5 @@ def draw():
     noFill()
     circle(30,400, 2 * avgdirection.mag())
     text("average direction " + str(avgdirection.heading()), 10,450)
-    text("temperature" + str(temperature), 10, 470)
-    #plotOrderParameters(avgdirection)
-                
+    text("temperature" + str(T), 10, 470)
+    drawDistribution()
