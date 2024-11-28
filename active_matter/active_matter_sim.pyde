@@ -1,11 +1,21 @@
+# choose display mode
+traceMode = False
+
 # array that stores the birds
 birds = []
 
 # temperature
-T = 0
+T = 1.
 
 # distance to consider as nearest neighbor
-corrlength = 0
+corrlength = 1
+
+# global velocity
+gvel = 1.
+
+# stiffness, or configuration energy 
+J = 0.1
+
 
 # number of birds
 numbirds = 100
@@ -79,9 +89,17 @@ class Bird:
         # normalized velocity
         self.vel = PVector(self.dir.x * vel, self.dir.y * vel)
         self.vel.normalize()
+        self.vel.rotate(angle)
 
     # basically rotates velocity, adds velocity to position            
     def timestep(self):
+        # current_direction = self.vel.normalize().heading()
+        # noisen = T * 0.001
+        # diff = PVector.angleBetween(self.dir, self.vel)
+        # diff = diff * J/2.
+        # noisevec = noisen * (random(1.) * TWO_PI - PI)
+        # diff = (diff ) % TWO_PI
+        # self.vel.rotate(current_direction)
         
         # normalized vector subtraction is the same as getting rotating by delta theta 
         diff = PVector.sub(self.dir, self.vel)
@@ -101,11 +119,11 @@ class Bird:
         diff.add(noisevec)
         
         # inertial term, so they don't spin immediately
-        diff.setMag(0.1)
+        diff.setMag(J / 2.)
         
         # rotate velocity vector
         self.vel.add(diff)
-        self.vel.normalize()
+        self.vel.setMag(gvel)
         
         # add velocity to position
         self.pos = self.pos.add(self.vel)
@@ -134,11 +152,27 @@ class Bird:
         ax,ay,bx,by,cx,cy = [0,-10,-5,5,5,5]
         triangle(ax,ay,bx,by,cx,cy)
         pop()
+    
+    # draw simplified bird for traces
+    def drawtrace(self):
+        x = self.pos.x
+        y = self.pos.y
+    
+        push()
+        stroke(0)
+        strokeWeight(2)
+        translate(x,y)
+        point(0,0)
+        pop()
 
 
 def setup():
+    global traceMode
+    global gvel
     # canvas size    
     size(500,500)
+    if traceMode:
+        background(255,255,255,1.0)
     
     # init birds ini random potitions and directions, store them in arraw birds[]
     for i in range(numbirds):
@@ -151,24 +185,37 @@ def neighboravg(a,radius):
     
     # for every bird that is not a, loop through the nearest neighbors of bird a
     for b in birds:
-        if (b != a) and (a.pos.dist(b.pos) < radius):
+        if (a.pos.dist(b.pos) < radius):
             # add up all their velocities
             sum.add(b.vel)
-
-    if sum.mag() == 0:
-        return a.vel
+   
+    # if no bird around, return itself
+    # if sum.mag() == 0:
+    #     return a.vel
     
     # return the normalized velocity (only care about direction)
     return sum.normalize()
     
  
 def draw():
-    # set background color (r,g,b)
-    background(50, 50 ,50 )
-    
+   
     # tell python that these variables don't care about scope
+    global traceMode
     global T
+    global J
     global corrlength
+    
+    # set background color (r,g,b)
+    if not traceMode:
+        background(50, 50 ,50 )
+    else: 
+        push()
+        c = color(255,255,255,20)
+        fill(c)
+        rect(0,0,600,600)
+        pop()
+        #background(255,255,255,0.1)
+    
     # map temperature and correlation length to mouse position
     T = mouseX / 500.
     T = T if T < 0.9 else 1.
@@ -184,23 +231,28 @@ def draw():
     # actually apply the calculations, separate two loops because each calculation might propagate
     for b in birds:
         b.timestep()
-        b.drawbird()
-        noFill()
-        stroke(255,255,255,50)
-        # radius circles
-        circle(b.pos.x, b.pos.y, corrlength)
+        if not traceMode:
+            b.drawbird()
+        
+            noFill()
+            stroke(255,255,255,50)
+            # radius circles
+            circle(b.pos.x, b.pos.y, corrlength)
+        else:
+            b.drawtrace()
     
     # below are for analysis only
+    if not traceMode:
+        # gets sum of velocities
+        avgdirection = avgDir(birds)
+        
+        # gets magnetization
+        avgdirection.mult(30. * 1./numbirds)
+        stroke(255)
+        line(30,400,30 + avgdirection.x,400 + avgdirection.y)
+        noFill()
     
-    # gets sum of velocities
-    avgdirection = avgDir(birds)
-    
-    # gets magnetization
-    avgdirection.mult(30. * 1./numbirds)
-    stroke(255)
-    line(30,400,30 + avgdirection.x,400 + avgdirection.y)
-    noFill()
-    circle(30,400, 2 * avgdirection.mag())
-    text("average direction " + str(avgdirection.heading()), 10,450)
-    text("temperature" + str(T), 10, 470)
-    drawDistribution()
+        circle(30,400, 2 * avgdirection.mag())
+        text("average direction " + str(avgdirection.heading()), 10,450)
+        text("temperature" + str(T), 10, 470)
+        drawDistribution()
