@@ -1,5 +1,7 @@
 # choose display mode
 traceMode = False
+coarseGrainMode = True
+coarseGrainSize = 50
 
 # array that stores the birds
 birds = []
@@ -14,11 +16,41 @@ corrlength = 1
 gvel = 1.
 
 # stiffness, or configuration energy 
-J = 0.1
+J = 0.05
 
 
 # number of birds
 numbirds = 100
+
+def coarseGraining(grainSize):
+    numGrain = int(width/ grainSize)
+    density = []
+    direction = []
+    for i in range(numGrain):
+        densitycol = []
+        dircol = []
+        stroke(255,255,255,20)
+        line(i * grainSize, 0, i * grainSize, width)
+        for j in range(numGrain):
+            densitycol.append(0.)
+            dircol.append(PVector(0,0))
+            line(0, j * grainSize, height, j * grainSize)
+        density.append(densitycol)
+        direction.append(dircol)
+    for b in birds:
+        i = int(b.pos.x / grainSize)
+        j = int(b.pos.y / grainSize)
+        density[i][j] += 1.
+        dir = direction[i][j].add(b.vel)
+        
+    for i in range(numGrain):
+        for j in range(numGrain): 
+            push()
+            colorMode(HSB, 360, 100, 100)
+            fill(degrees(direction[i][j].heading()), 100, 10 * density[i][j])
+            rect(i * grainSize, j * grainSize, grainSize, grainSize)
+            pop()
+        
 
 # creates random vector with components between 0 and 1
 def randomVec(x,y):
@@ -160,7 +192,7 @@ class Bird:
     
         push()
         stroke(0)
-        strokeWeight(2)
+        strokeWeight(1)
         translate(x,y)
         point(0,0)
         pop()
@@ -198,7 +230,6 @@ def neighboravg(a,radius):
     
  
 def draw():
-   
     # tell python that these variables don't care about scope
     global traceMode
     global T
@@ -208,9 +239,11 @@ def draw():
     # set background color (r,g,b)
     if not traceMode:
         background(50, 50 ,50 )
+        if coarseGrainMode:
+            coarseGraining(coarseGrainSize)
     else: 
         push()
-        c = color(255,255,255,20)
+        c = color(255,255,255,1)
         fill(c)
         rect(0,0,600,600)
         pop()
@@ -256,3 +289,4 @@ def draw():
         text("average direction " + str(avgdirection.heading()), 10,450)
         text("temperature" + str(T), 10, 470)
         drawDistribution()
+        
