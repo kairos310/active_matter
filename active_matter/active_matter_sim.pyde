@@ -1,7 +1,10 @@
+import time
+
 # choose display mode
 traceMode = False
-coarseGrainMode = True
+coarseGrainMode = False
 coarseGrainSize = 50
+resetTime = 100000
 
 # array that stores the birds
 birds = []
@@ -16,11 +19,19 @@ corrlength = 1
 gvel = 1.
 
 # stiffness, or configuration energy 
-J = 0.05
+J = 0.5
 
 
 # number of birds
 numbirds = 100
+
+def reset():
+    del birds[0:-1]
+    # init birds ini random potitions and directions, store them in arraw birds[]
+    for i in range(numbirds):
+        b = Bird(randomVec(500,500),random(TWO_PI),1)
+        birds.append(b)
+    
 
 def coarseGraining(grainSize):
     numGrain = int(width/ grainSize)
@@ -206,10 +217,7 @@ def setup():
     if traceMode:
         background(255,255,255,1.0)
     
-    # init birds ini random potitions and directions, store them in arraw birds[]
-    for i in range(numbirds):
-        b = Bird(randomVec(500,500),random(TWO_PI),1)
-        birds.append(b)
+    reset()
 
 # gets the normalized vector sum of all bird velocities if they are nearest neighbors to bird a
 def neighboravg(a,radius):
@@ -230,6 +238,7 @@ def neighboravg(a,radius):
     
  
 def draw():
+    
     # tell python that these variables don't care about scope
     global traceMode
     global T
@@ -289,4 +298,10 @@ def draw():
         text("average direction " + str(avgdirection.heading()), 10,450)
         text("temperature" + str(T), 10, 470)
         drawDistribution()
+        
+        
+        if frameCount % (60 * resetTime) == 0: 
+            print([T, corrlength, avgdirection.mag()])
+            reset()
+    
         
