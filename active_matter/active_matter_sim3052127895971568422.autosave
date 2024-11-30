@@ -1,19 +1,16 @@
-import time
-
 # choose display mode
-traceMode = False
-coarseGrainMode = True
+traceMode = True
+coarseGrainMode = False
 coarseGrainSize = 50
-resetTime = 10
 
 # array that stores the birds
 birds = []
 
 # temperature
-T = 0.5
+T = 1.
 
 # distance to consider as nearest neighbor
-interactionradius = 10
+corrlength = 1
 
 # global velocity
 gvel = 1.
@@ -23,72 +20,9 @@ J = 0.5
 
 
 # number of birds
-numbirds = 50
+numbirds = 200
 
-def correlation():
-    
-    # allcorr = []
-    
-    # for a in birds:
-    #     if a.pos.x > 400 or a.pos.x < 100 or a.pos.y < 100 or a.pos.y > 400:
-    #         continue
-    #     for b in birds:
-    #         if a == b:
-    #             break
-    #     # b =birds[0]
-        
-    #         corr = [PVector.dot(a.vel,b.vel),PVector.dist(a.pos, b.pos)]
-    #         allcorr.append(corr)
-    # with open("correlation.txt", "w+") as f:
-    #     text = ""
-    #     for c in allcorr:
-    #         text += str(c[0]) + "," + str(c[1]) + "\n"
-    #     f.write(text)
-        
-    # get closest radius where the correlation is less than some threshold
-    threshold = 0.7
-    
-    avgcorrlength = 0.
-    
-    for a in birds:
-        corrlength = 500.
-        for b in birds:
-            corr = PVector.dot(a.vel,b.vel)
-            distance = PVector.dist(a.pos, b.pos)
-            if corrlength > distance:
-                if corr < threshold:
-                    corrlength = distance
-        avgcorrlength += corrlength
-        
-    return avgcorrlength / numbirds
-            
-def timegraph(orderparam):
-    with open("time.txt", "a+") as f:
-        data = [frameCount, orderparam]
-        t = str(data)[1:-2]
-        print(t)
-        f.write(t + "\n")
-
-def updateParams(orderparam):
-    global J
-    global T
-    i = int(frameCount / (60 * resetTime))
-    J = map( i % 10, 0, 9, 0.01, 0.5)
-    T = map( int(i / 10), 0, 9, 0.0, 1.0)
-    with open("log.txt", "a+") as f:
-        data = [i, T, J, interactionradius, len(birds), gvel, orderparam]
-        t = str(data)[1:-2]
-        print(t)
-        f.write(t + "\n")
-    
-
-
-def reset():
-    del birds[0:-1]
-    # init birds ini random potitions and directions, store them in arraw birds[]
-    for i in range(numbirds):
-        b = Bird(randomVec(500,500),random(TWO_PI),1)
-        birds.append(b)
+def modifyParams():
     
 
 def coarseGraining(grainSize):
@@ -98,10 +32,12 @@ def coarseGraining(grainSize):
     for i in range(numGrain):
         densitycol = []
         dircol = []
-        # stroke(255,255,255,20)
+        stroke(255,255,255,20)
+        line(i * grainSize, 0, i * grainSize, width)
         for j in range(numGrain):
             densitycol.append(0.)
             dircol.append(PVector(0,0))
+            line(0, j * grainSize, height, j * grainSize)
         density.append(densitycol)
         direction.append(dircol)
     for b in birds:
@@ -114,8 +50,7 @@ def coarseGraining(grainSize):
         for j in range(numGrain): 
             push()
             colorMode(HSB, 360, 100, 100)
-            noStroke()
-            fill(degrees(direction[i][j].heading()) + 180, 100, 10 * density[i][j])
+            fill(degrees(direction[i][j].heading()), 100, 10 * density[i][j])
             rect(i * grainSize, j * grainSize, grainSize, grainSize)
             pop()
         
@@ -259,27 +194,25 @@ class Bird:
         y = self.pos.y
     
         push()
-        stroke(255)
-        strokeWeight(1)
+        stroke(0)
+        strokeWeight(2)
         translate(x,y)
-        rotate(self.vel.heading() + PI/2)
-        line(0,0,0,3)
+        point(0,0)
         pop()
 
 
 def setup():
-    with open("log.txt", "w+") as f:
-        f.write("i, T, J, interactionradius, len(birds), gvel, orderparam\n")
-    with open("time.txt", "w+") as f:
-        f.write("frames, orderparam")
     global traceMode
     global gvel
     # canvas size    
     size(500,500)
     if traceMode:
-        background(255,255,255,1.0)
+        background(200,1.0)
     
-    reset()
+    # init birds ini random potitions and directions, store them in arraw birds[]
+    for i in range(numbirds):
+        b = Bird(randomVec(500,500),random(TWO_PI),1)
+        birds.append(b)
 
 # gets the normalized vector sum of all bird velocities if they are nearest neighbors to bird a
 def neighboravg(a,radius):
@@ -300,38 +233,41 @@ def neighboravg(a,radius):
     
  
 def draw():
-    
     # tell python that these variables don't care about scope
     global traceMode
     global T
     global J
-    global interactionradius
+    global corrlength
     
-    
-    
-
     # set background color (r,g,b)
     if not traceMode:
         background(50, 50 ,50 )
+        if coarseGrainMode:
+            coarseGraining(coarseGrainSize)
     else: 
+        # if frameCount % 30 == 0:
+        #     push()
+        #     c = color(255,255,255,255)
+        #     fill(c)
+        #     rect(0,0,600,600)
+        #     pop()
         push()
-        c = color(0,0,0,50)
+        c = color(255,255,255,10)
         fill(c)
         rect(0,0,600,600)
         pop()
-    if coarseGrainMode:
-        coarseGraining(coarseGrainSize)
+        #background(255,255,255,0.1)
     
     # map temperature and correlation length to mouse position
     T = mouseX / 500.
     T = T if T < 0.9 else 1.
-    interactionradius = (1 - mouseY / 500.) * 300
+    corrlength = (1 - mouseY / 500.) * 100
     
     # loop through all the birds, get their nearest neighbor spins, store them in bird.dir
     for b in birds:
         noFill()
         stroke(0)
-        average = neighboravg(b, interactionradius)
+        average = neighboravg(b, corrlength)
         b.align(average)
     
     # actually apply the calculations, separate two loops because each calculation might propagate
@@ -343,7 +279,7 @@ def draw():
             noFill()
             stroke(255,255,255,50)
             # radius circles
-            circle(b.pos.x, b.pos.y, interactionradius)
+            circle(b.pos.x, b.pos.y, corrlength)
         else:
             b.drawtrace()
     
@@ -353,25 +289,13 @@ def draw():
         avgdirection = avgDir(birds)
         
         # gets magnetization
-        avgdirection.mult(1./numbirds)
+        avgdirection.mult(30. * 1./numbirds)
         stroke(255)
-        line(30,400,30 + avgdirection.x * 30,400 + avgdirection.y * 30)
+        line(30,400,30 + avgdirection.x,400 + avgdirection.y)
         noFill()
     
         circle(30,400, 2 * avgdirection.mag())
         text("average direction " + str(avgdirection.heading()), 10,450)
         text("temperature" + str(T), 10, 470)
         drawDistribution()
-        
-        if frameCount % 30 == 0:
-            # timegraph(avgdirection.mag())
-            print(correlation())
-            pass
-        if frameCount % (60 * resetTime) == 0: 
-            
-            #print([T, interactionradius, avgdirection.mag()])
-            # updateParams(avgdirection.mag())
-            reset()
-            
-    
         

@@ -1,0 +1,1 @@
+i, T, J, interactionradius, len(birds), gvel, orderparam
