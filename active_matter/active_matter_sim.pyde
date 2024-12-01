@@ -1,10 +1,10 @@
 import time
 
 # computation mode
-manhattan = True
+manhattan = False
 
 # choose display mode
-traceMode = True
+traceMode = False
 coarseGrainMode = False
 coarseGrainSize = 50
 resetTime = 10
@@ -26,7 +26,7 @@ J = 0.5
 
 
 # number of birds
-numbirds = 2000
+numbirds = 40
 
 
 def genMatrix(numGrid, matrix):
@@ -365,6 +365,11 @@ def draw():
             average = neighboravg(b, interactionradius)
             b.align(average)
     # actually apply the calculations, separate two loops because each calculation might propagate
+    if manhattan:
+        for i in range(numGrid):
+            stroke(255,255,255,500 / numGrid)
+            line(0, width / numGrid * i, width, width  / numGrid * i)
+            line(width / numGrid * i,0, width  / numGrid * i, width)
     for b in birds:
         b.timestep()
         if not traceMode:
@@ -373,7 +378,10 @@ def draw():
             noFill()
             stroke(255,255,255,50)
             # radius circles
-            circle(b.pos.x, b.pos.y, interactionradius)
+            if not manhattan:
+                circle(b.pos.x, b.pos.y, interactionradius)
+    
+                
         else:
             b.drawtrace()
     
@@ -390,7 +398,12 @@ def draw():
     
         circle(30,400, 2 * avgdirection.mag())
         text("average direction " + str(avgdirection.heading()), 10,450)
-        text("temperature" + str(T), 10, 470)
+        text("noise amplitude" + str(T), 10, 470)
+        if manhattan:
+            text("density" + str(numbirds / float(numGrid ** 2)), 10, 490)
+        else:
+            text("density" + str(numbirds / (float(500 ** 2)/interactionradius ** 2 * PI)), 10, 490) 
+        
         drawDistribution()
         
         if frameCount % 30 == 0:
