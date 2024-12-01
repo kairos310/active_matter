@@ -1,8 +1,11 @@
 import time
 
+# computation mode
+manhattan = True
+
 # choose display mode
-traceMode = False
-coarseGrainMode = True
+traceMode = True
+coarseGrainMode = False
 coarseGrainSize = 50
 resetTime = 10
 
@@ -23,7 +26,29 @@ J = 0.5
 
 
 # number of birds
-numbirds = 50
+numbirds = 2000
+
+
+def genMatrix(numGrid, matrix):
+    gridSize = width / numGrid
+    for b in birds:
+        x = floor(b.pos.x / gridSize)
+        y = floor(b.pos.y / gridSize)
+        matrix[x][y] = b.vel
+    
+def avgVel(b,matrix, numGrid):
+    gridSize = width / numGrid
+    
+    avgVel = PVector(0,0)
+    x = floor(b.pos.x / gridSize)
+    y = floor(b.pos.y / gridSize)
+    for k in range(9):
+        i = k % 3 - 1
+        j = floor(k/3) - 1
+        if(i == 0 and j == 0):
+            continue
+        avgVel.add(matrix[(x + i) % numGrid][(y + j) % numGrid])
+    return avgVel.normalize()
 
 def correlation():
     
@@ -326,14 +351,19 @@ def draw():
     T = mouseX / 500.
     T = T if T < 0.9 else 1.
     interactionradius = (1 - mouseY / 500.) * 300
-    
-    # loop through all the birds, get their nearest neighbor spins, store them in bird.dir
-    for b in birds:
-        noFill()
-        stroke(0)
-        average = neighboravg(b, interactionradius)
-        b.align(average)
-    
+    gridSizes = [1, 2, 4, 5, 10, 20, 25, 50, 100, 125, 250] 
+    numGrid = gridSizes[floor(map(mouseY, 0, 500, 0, 11))]
+    if manhattan:
+        matrix = [[PVector(0,0) for i in range(numGrid)] for j in range(numGrid)]
+        genMatrix(numGrid, matrix)
+        for b in birds:    
+            average = avgVel(b, matrix, numGrid)
+            b.align(average)
+    else:
+        # loop through all the birds, get their nearest neighbor spins, store them in bird.dir
+        for b in birds:
+            average = neighboravg(b, interactionradius)
+            b.align(average)
     # actually apply the calculations, separate two loops because each calculation might propagate
     for b in birds:
         b.timestep()
