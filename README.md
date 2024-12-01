@@ -15,3 +15,8 @@ traceMode = True
 for rendering more birds and seeing the trace over time
 
 ![image](https://github.com/user-attachments/assets/83cefc34-8d06-4997-ba92-7e2753bf6b1e)
+
+manhattan = True
+approximates distance calculation with grid, faster computation! O(N birds) but O(n^2 grid size), now can simulate vorticies
+N = 2000 example
+![image](https://github.com/user-attachments/assets/e6ab99f6-c733-4b78-9ce8-b4737b16449e)
