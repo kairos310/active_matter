@@ -27,8 +27,16 @@ J = 1.
 
 
 # number of birds
-numbirds = 40
+numbirds = 400
 
+#gridSizes
+gridSizes = [1, 2, 4, 5, 10, 20, 25, 50, 100, 125, 250]
+
+#numGrid
+numGrid = gridSizes[0]
+
+#density
+density = 1.0
 
 def genMatrix(numGrid, matrix):
     gridSize = width / numGrid
@@ -98,20 +106,29 @@ def timegraph(orderparam):
 def updateParams(orderparam, density):
     global J
     global T
-    i = int(frameCount / (60 * resetTime))
-    J = map( i % 10, 0, 9, 0.01, 0.5)
-    T = map( int(i / 10), 0, 9, 0.0, 1.0)
+    global numGrid
+    i=0
     with open("log.txt", "a+") as f:
-        data = [i, T, J, interactionradius, numbirds, gvel, orderparam]
+        data = [i, T, density, len(birds), gvel, orderparam]
         t = str(data)[1:-2]
         print(t)
         f.write(t + "\n")
+    i = int(frameCount / (60 * resetTime)) - 1
+    #J = map( i % 10, 0, 9, 0.01, 0.5) #dont update J
+    T = map( int(i % 10), 0, 9, 0.0, 1.0)
+    numGrid = gridSizes[(i) / 10 ]
     
-
+#def orderParamGraph(noiseparam, orderparam, density):
+    #saves data (noise, order parameter, density) for plotting.
+    #print("noise, orderParameter, density", noiseparam, orderparam, density)
+    #with open("orderParam.txt", "a+") as f:
+        #data = [noiseparam, orderparam, density]
+        #t = str(data)[1:-1]
+        #f.write(t + "\n")
 
 def reset():
-    del birds[0:-1]
-    # init birds ini random potitions and directions, store them in arraw birds[]
+    del birds[0:]
+    # init birds ini random potitions and directions, store them in array birds[]
     for i in range(numbirds):
         b = Bird(randomVec(500,500),random(TWO_PI),1)
         birds.append(b)
@@ -119,7 +136,7 @@ def reset():
 
 def coarseGraining(grainSize):
     numGrain = int(width/ grainSize)
-    density = []
+    Density = []
     direction = []
     for i in range(numGrain):
         densitycol = []
@@ -128,12 +145,12 @@ def coarseGraining(grainSize):
         for j in range(numGrain):
             densitycol.append(0.)
             dircol.append(PVector(0,0))
-        density.append(densitycol)
+        Density.append(densitycol)
         direction.append(dircol)
     for b in birds:
         i = int(b.pos.x / grainSize)
         j = int(b.pos.y / grainSize)
-        density[i][j] += 1.
+        Density[i][j] += 1.
         dir = direction[i][j].add(b.vel)
         
     for i in range(numGrain):
@@ -141,7 +158,7 @@ def coarseGraining(grainSize):
             push()
             colorMode(HSB, 360, 100, 100)
             noStroke()
-            fill(degrees(direction[i][j].heading()) + 180, 100, 10 * density[i][j])
+            fill(degrees(direction[i][j].heading()) + 180, 100, 10 * Density[i][j])
             rect(i * grainSize, j * grainSize, grainSize, grainSize)
             pop()
         
@@ -281,9 +298,12 @@ class Bird:
 
 def setup():
     with open("log.txt", "w+") as f:
-        f.write("i, T, J, interactionradius, len(birds), gvel, orderparam\n")
+        f.write("i, T, density, len(birds), gvel, orderparam\n")
     with open("time.txt", "w+") as f:
         f.write("frames, orderparam")
+    #with open("orderParam.txt", "w+") as f:
+        #f.write("noise, order parameter, density\n")
+    
     global traceMode
     global gvel
     # canvas size    
@@ -315,6 +335,9 @@ def draw():
     global J
     global interactionradius
     global extrinsic
+    global gridSizes
+    global numGrid
+    global density
     
 
     # set background color (r,g,b)
@@ -330,11 +353,14 @@ def draw():
         coarseGraining(coarseGrainSize)
     
     # map temperature and correlation length to mouse position
-    T = mouseX / 500.
-    T = T if T < 0.9 else 1.
+    #T = mouseX / 500.
+    #T = T if T < 0.9 else 1.
     interactionradius = (1 - mouseY / 500.) * 300
-    gridSizes = [1, 2, 4, 5, 10, 20, 25, 50, 100, 125, 250] 
-    numGrid = gridSizes[floor(map(mouseY, 0, 500, 0, 11))]
+    #gridSizes = [1, 2, 4, 5, 10, 20, 25, 50, 100, 125, 250] 
+    #numGrid = gridSizes[floor(map(mouseY, 0, 500, 0, 11))]
+    #numGrid = gridSizes[4]
+    #print("numGrid " , numGrid)
+    
     if manhattan:
         matrix = [[PVector(0,0) for i in range(numGrid)] for j in range(numGrid)]
         genMatrix(numGrid, matrix)
@@ -369,8 +395,11 @@ def draw():
     
     # below are for analysis only
     if not traceMode:
-        # gets sum of velocities
+        # gets vector sum of bird velocities
         avgdirection = avgDir(birds)
+        density = 0.0 
+        
+        #print("order parameter", avgdirection.mag()/numbirds)
         
         # gets magnetization
         avgdirection.mult(1./numbirds)
@@ -379,24 +408,29 @@ def draw():
         noFill()
     
         circle(30,400, 2 * avgdirection.mag())
-        text("average direction " + str(avgdirection.heading()), 10,450)
+        text("average direction (deg) " + str((-180./PI)*avgdirection.heading()), 10,450)
         text("noise amplitude" + str(T), 10, 470)
         if manhattan:
+            density = float(numbirds) / float(numGrid ** 2)
             text("density" + str(numbirds / float(numGrid ** 2)), 10, 490)
         else:
+            density = numbirds / (float(500 ** 2)/interactionradius ** 2 * PI)
             text("density" + str(numbirds / (float(500 ** 2)/interactionradius ** 2 * PI)), 10, 490) 
         
         drawDistribution()
         
+        #The fact that T is global means it does the funny thing with ints/floats when I try to pass it
+        #to a function so I'll just do this. (Im the sloppiest coder ever)
+        #noiseParam = T
+        
         if frameCount % 30 == 0:
             # timegraph(avgdirection.mag())
-            # print(correlation())
+            #print(correlation())
             pass
         if frameCount % (60 * resetTime) == 0: 
-            
-            # print([T, interactionradius, avgdirection.mag()])
-            # density = str(numbirds / float(numGrid ** 2))
-            # updateParams(avgdirection.mag(), density)
+            #print([T, interactionradius, avgdirection.mag()])
+            updateParams(avgdirection.mag()) #this argument is the order parameter.
+            #orderParamGraph(noiseParam, avgdirection.mag(), density)
             reset()
             
     
