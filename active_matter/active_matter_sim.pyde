@@ -27,7 +27,7 @@ J = 1.
 
 
 # number of birds
-numbirds = 400
+numbirds = 100
 
 #gridSizes
 gridSizes = [1, 2, 4, 5, 10, 20, 25, 50, 100, 125, 250]
@@ -103,10 +103,11 @@ def timegraph(orderparam):
         print(t)
         f.write(t + "\n")
 
-def updateParams(orderparam, density):
+def updateParams(orderparam):
     global J
     global T
     global numGrid
+    global density
     i=0
     with open("log.txt", "a+") as f:
         data = [i, T, density, len(birds), gvel, orderparam]
