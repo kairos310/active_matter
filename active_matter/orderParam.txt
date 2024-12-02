@@ -1,0 +1,2 @@
+noise, order parameter, density
+0.686, 0.8448575735092163, 0.4
