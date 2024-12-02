@@ -1,12 +1,12 @@
 import time
 
 # computation mode
-manhattan = False
+manhattan = True
 
 # choose display mode
 traceMode = False
 coarseGrainMode = False
-coarseGrainSize = 50
+coarseGrainSize = 25
 resetTime = 10
 
 # array that stores the birds
@@ -14,6 +14,7 @@ birds = []
 
 # temperature
 T = 0.5
+extrinsic = False
 
 # distance to consider as nearest neighbor
 interactionradius = 10
@@ -22,7 +23,7 @@ interactionradius = 10
 gvel = 1.
 
 # stiffness, or configuration energy 
-J = 0.5
+J = 1.
 
 
 # number of birds
@@ -94,14 +95,14 @@ def timegraph(orderparam):
         print(t)
         f.write(t + "\n")
 
-def updateParams(orderparam):
+def updateParams(orderparam, density):
     global J
     global T
     i = int(frameCount / (60 * resetTime))
     J = map( i % 10, 0, 9, 0.01, 0.5)
     T = map( int(i / 10), 0, 9, 0.0, 1.0)
     with open("log.txt", "a+") as f:
-        data = [i, T, J, interactionradius, len(birds), gvel, orderparam]
+        data = [i, T, J, interactionradius, numbirds, gvel, orderparam]
         t = str(data)[1:-2]
         print(t)
         f.write(t + "\n")
@@ -161,19 +162,6 @@ def partition_function():
             sum = exp(- energy(a,b)/T)
     return sum
 
-
-# class Plot:
-#     def __init__(self, arr):
-#         self.arr
-#     def add():
-        
-#     def plot():
-#         i = 0
-#         for a in self.arr: 
-#             line(
-#             i += 1
-    
-
 # adds up all spins into bins, for analysis of distribution 
 def drawDistribution():
     bins = []
@@ -218,40 +206,39 @@ class Bird:
 
     # basically rotates velocity, adds velocity to position            
     def timestep(self):
-        # current_direction = self.vel.normalize().heading()
-        # noisen = T * 0.001
-        # diff = PVector.angleBetween(self.dir, self.vel)
-        # diff = diff * J/2.
-        # noisevec = noisen * (random(1.) * TWO_PI - PI)
-        # diff = (diff ) % TWO_PI
-        # self.vel.rotate(current_direction)
-        
-        # normalized vector subtraction is the same as getting rotating by delta theta 
-        diff = PVector.sub(self.dir, self.vel)
-        
-        # noise component, initialize as a vector
-        noisevec = PVector(1,0)
-        # rotate by random between -pi and pi
-        noisevec.rotate(random(-PI,PI))
-        
-        # multiplies noise by a constant, (this is T for now but should change)
-        noisevec.setMag(T)
-        
-        # set mag of interation energy to inverse (also should change)
-        diff.setMag(1. - T)
-        
-        # linear combination
-        diff.add(noisevec)
-        
-        # inertial term, so they don't spin immediately
-        diff.setMag(J / 2.)
-        
-        # rotate velocity vector
-        self.vel.add(diff)
-        self.vel.setMag(gvel)
+        # Extrinsic Noise
+        if extrinsic: 
+            # normalized vector subtraction is the same as getting rotating by delta theta 
+            diff = PVector.sub(self.dir, self.vel)
+            diff.mult(J * 0.5)
+            # noise component, initialize as a vector
+            noisevec = PVector(1,0)
+            # rotate by random between -pi and pi
+            noisevec.rotate(random(-PI,PI))
+            
+            # multiplies noise by a constant, (this is T for now but should change)
+            noisevec.setMag(T)
+            
+            # linear combination
+            diff.add(noisevec)
+            
+            # rotate velocity vector
+            self.vel.add(diff)
+            self.vel.normalize()
+            
+        # Intrinsic Noise
+        else: 
+            # normalized vector subtraction is the same as getting rotating by delta theta 
+            diff = PVector.sub(self.dir, self.vel)
+            diff.mult(0.5 * J)
+
+            # rotate velocity vector
+            self.vel.add(diff)
+            self.vel.normalize()
+            self.vel.rotate(T * random(-PI,PI))
         
         # add velocity to position
-        self.pos = self.pos.add(self.vel)
+        self.pos = self.pos.add(PVector.mult(self.vel, gvel))
         
         # circular boundary conditions
         self.pos.x = self.pos.x % width
@@ -310,16 +297,12 @@ def setup():
 def neighboravg(a,radius):
     sum = PVector(0,0)
     
-    # for every bird that is not a, loop through the nearest neighbors of bird a
+    # loop through the nearest neighbors of bird a
     for b in birds:
         if (a.pos.dist(b.pos) < radius):
             # add up all their velocities
             sum.add(b.vel)
-   
-    # if no bird around, return itself
-    # if sum.mag() == 0:
-    #     return a.vel
-    
+
     # return the normalized velocity (only care about direction)
     return sum.normalize()
     
@@ -331,8 +314,7 @@ def draw():
     global T
     global J
     global interactionradius
-    
-    
+    global extrinsic
     
 
     # set background color (r,g,b)
@@ -408,12 +390,13 @@ def draw():
         
         if frameCount % 30 == 0:
             # timegraph(avgdirection.mag())
-            print(correlation())
+            # print(correlation())
             pass
         if frameCount % (60 * resetTime) == 0: 
             
-            #print([T, interactionradius, avgdirection.mag()])
-            # updateParams(avgdirection.mag())
+            # print([T, interactionradius, avgdirection.mag()])
+            # density = str(numbirds / float(numGrid ** 2))
+            # updateParams(avgdirection.mag(), density)
             reset()
             
     
