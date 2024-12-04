@@ -1,4 +1,5 @@
 import time
+import gc
 
 # computation mode
 manhattan = True
@@ -7,14 +8,14 @@ manhattan = True
 traceMode = False
 coarseGrainMode = False
 coarseGrainSize = 25
-resetTime = 10
+resetTime = 1
 
 # array that stores the birds
 birds = []
 
-# temperature
+# intrinsic and extrinsic noise parameter
 T = 0.5
-extrinsic = False
+h = 1.
 
 # distance to consider as nearest neighbor
 interactionradius = 10
@@ -43,7 +44,7 @@ def genMatrix(numGrid, matrix):
     for b in birds:
         x = floor(b.pos.x / gridSize)
         y = floor(b.pos.y / gridSize)
-        matrix[x][y] = b.vel
+        matrix[x][y].add(b.vel)
     
 def avgVel(b,matrix, numGrid):
     gridSize = width / numGrid
@@ -106,18 +107,21 @@ def timegraph(orderparam):
 def updateParams(orderparam):
     global J
     global T
+    global h
     global numGrid
     global density
     i=0
     with open("log.txt", "a+") as f:
-        data = [i, T, density, len(birds), gvel, orderparam]
+        data = [i, T, h, density, numbirds, gvel, orderparam]
         t = str(data)[1:-2]
         print(t)
         f.write(t + "\n")
     i = int(frameCount / (60 * resetTime)) - 1
     #J = map( i % 10, 0, 9, 0.01, 0.5) #dont update J
     T = map( int(i % 10), 0, 9, 0.0, 1.0)
-    numGrid = gridSizes[(i) / 10 ]
+    h = map( int(i / 10), 0, 9, 0.0, 1.0)
+    #numGrid = gridSizes[(i) / 10 ]
+    numGrid = gridSizes[4]
     
 #def orderParamGraph(noiseparam, orderparam, density):
     #saves data (noise, order parameter, density) for plotting.
@@ -129,6 +133,7 @@ def updateParams(orderparam):
 
 def reset():
     del birds[0:]
+    gc.collect()
     # init birds ini random potitions and directions, store them in array birds[]
     for i in range(numbirds):
         b = Bird(randomVec(500,500),random(TWO_PI),1)
@@ -224,36 +229,28 @@ class Bird:
 
     # basically rotates velocity, adds velocity to position            
     def timestep(self):
-        # Extrinsic Noise
-        if extrinsic: 
-            # normalized vector subtraction is the same as getting rotating by delta theta 
-            diff = PVector.sub(self.dir, self.vel)
-            diff.mult(J * 0.5)
-            # noise component, initialize as a vector
-            noisevec = PVector(1,0)
-            # rotate by random between -pi and pi
-            noisevec.rotate(random(-PI,PI))
-            
-            # multiplies noise by a constant, (this is T for now but should change)
-            noisevec.setMag(T)
-            
-            # linear combination
-            diff.add(noisevec)
-            
-            # rotate velocity vector
-            self.vel.add(diff)
-            self.vel.normalize()
-            
-        # Intrinsic Noise
-        else: 
-            # normalized vector subtraction is the same as getting rotating by delta theta 
-            diff = PVector.sub(self.dir, self.vel)
-            diff.mult(0.5 * J)
-
-            # rotate velocity vector
-            self.vel.add(diff)
-            self.vel.normalize()
-            self.vel.rotate(T * random(-PI,PI))
+        # normalized vector subtraction is the same as getting rotating by delta theta 
+        diff = PVector.sub(self.dir, self.vel)
+        
+        # neighbor strength (stiffness)
+        diff.mult(J * 0.5)
+        # noise component, initialize as a vector
+        extrinsicNoise = PVector(1,0)
+        # rotate by random between -pi and pi
+        extrinsicNoise.rotate(random(-PI,PI))
+        
+        # multiplies noise by a constant, this is external noise param h
+        extrinsicNoise.setMag(h)
+        
+        # linear combination
+        diff.add(extrinsicNoise)
+        
+        # rotate velocity vector
+        self.vel.add(diff)
+        self.vel.normalize()
+        
+        # rotate velocity again due to internal noise
+        self.vel.rotate(T * random(-PI,PI))
         
         # add velocity to position
         self.pos = self.pos.add(PVector.mult(self.vel, gvel))
@@ -299,7 +296,7 @@ class Bird:
 
 def setup():
     with open("log.txt", "w+") as f:
-        f.write("i, T, density, len(birds), gvel, orderparam\n")
+        f.write("i, T, h, density, len(birds), gvel, orderparam\n")
     with open("time.txt", "w+") as f:
         f.write("frames, orderparam")
     #with open("orderParam.txt", "w+") as f:
@@ -335,7 +332,7 @@ def draw():
     global T
     global J
     global interactionradius
-    global extrinsic
+    global h
     global gridSizes
     global numGrid
     global density
@@ -361,10 +358,10 @@ def draw():
     #numGrid = gridSizes[floor(map(mouseY, 0, 500, 0, 11))]
     #numGrid = gridSizes[4]
     #print("numGrid " , numGrid)
-    
     if manhattan:
         matrix = [[PVector(0,0) for i in range(numGrid)] for j in range(numGrid)]
         genMatrix(numGrid, matrix)
+        
         for b in birds:    
             average = avgVel(b, matrix, numGrid)
             b.align(average)
@@ -381,6 +378,7 @@ def draw():
             line(width / numGrid * i,0, width  / numGrid * i, width)
     for b in birds:
         b.timestep()
+    
         if not traceMode:
             b.drawbird()
         
