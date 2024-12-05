@@ -2,13 +2,20 @@ import time
 import gc
 
 # computation mode
-manhattan = True
+manhattan = False
 
 # choose display mode
 traceMode = False
 coarseGrainMode = False
 coarseGrainSize = 25
+<<<<<<< HEAD
+resetTime = 3
+
+#mousemode!
+mousemode = True
+=======
 resetTime = 1
+>>>>>>> main
 
 # array that stores the birds
 birds = []
@@ -28,7 +35,7 @@ J = 1.
 
 
 # number of birds
-numbirds = 100
+numbirds = 30
 
 #gridSizes
 gridSizes = [1, 2, 4, 5, 10, 20, 25, 50, 100, 125, 250]
@@ -110,18 +117,27 @@ def updateParams(orderparam):
     global h
     global numGrid
     global density
-    i=0
+    i = int(frameCount / (60 * resetTime)) -1
     with open("log.txt", "a+") as f:
         data = [i, T, h, density, numbirds, gvel, orderparam]
         t = str(data)[1:-2]
         print(t)
         f.write(t + "\n")
-    i = int(frameCount / (60 * resetTime)) - 1
+    print("i ", i)
     #J = map( i % 10, 0, 9, 0.01, 0.5) #dont update J
+<<<<<<< HEAD
+    if mousemode:
+        T=T
+        numGrid = numGrid
+    else:    
+        T = map( int(i % 20), 0, 19, 0.0, 1.0)
+        numGrid = gridSizes[(i) / 20 ]
+=======
     T = map( int(i % 10), 0, 9, 0.0, 1.0)
     h = map( int(i / 10), 0, 9, 0.0, 1.0)
     #numGrid = gridSizes[(i) / 10 ]
     numGrid = gridSizes[4]
+>>>>>>> main
     
 #def orderParamGraph(noiseparam, orderparam, density):
     #saves data (noise, order parameter, density) for plotting.
@@ -351,12 +367,15 @@ def draw():
         coarseGraining(coarseGrainSize)
     
     # map temperature and correlation length to mouse position
+    if mousemode:
+        T = mouseX / 500.
+        numGrid = gridSizes[floor(map(mouseY, 0, 500, 0, 11))]
+        
     #T = mouseX / 500.
     #T = T if T < 0.9 else 1.
     interactionradius = (1 - mouseY / 500.) * 300
     #gridSizes = [1, 2, 4, 5, 10, 20, 25, 50, 100, 125, 250] 
     #numGrid = gridSizes[floor(map(mouseY, 0, 500, 0, 11))]
-    #numGrid = gridSizes[4]
     #print("numGrid " , numGrid)
     if manhattan:
         matrix = [[PVector(0,0) for i in range(numGrid)] for j in range(numGrid)]
@@ -418,9 +437,6 @@ def draw():
         
         drawDistribution()
         
-        #The fact that T is global means it does the funny thing with ints/floats when I try to pass it
-        #to a function so I'll just do this. (Im the sloppiest coder ever)
-        #noiseParam = T
         
         if frameCount % 30 == 0:
             # timegraph(avgdirection.mag())
@@ -429,7 +445,6 @@ def draw():
         if frameCount % (60 * resetTime) == 0: 
             #print([T, interactionradius, avgdirection.mag()])
             updateParams(avgdirection.mag()) #this argument is the order parameter.
-            #orderParamGraph(noiseParam, avgdirection.mag(), density)
             reset()
             
     
