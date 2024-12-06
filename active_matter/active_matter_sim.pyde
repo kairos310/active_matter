@@ -8,14 +8,10 @@ manhattan = False
 traceMode = False
 coarseGrainMode = False
 coarseGrainSize = 25
-<<<<<<< HEAD
 resetTime = 3
 
 #mousemode!
 mousemode = True
-=======
-resetTime = 1
->>>>>>> main
 
 # array that stores the birds
 birds = []
@@ -125,19 +121,12 @@ def updateParams(orderparam):
         f.write(t + "\n")
     print("i ", i)
     #J = map( i % 10, 0, 9, 0.01, 0.5) #dont update J
-<<<<<<< HEAD
     if mousemode:
         T=T
         numGrid = numGrid
     else:    
         T = map( int(i % 20), 0, 19, 0.0, 1.0)
         numGrid = gridSizes[(i) / 20 ]
-=======
-    T = map( int(i % 10), 0, 9, 0.0, 1.0)
-    h = map( int(i / 10), 0, 9, 0.0, 1.0)
-    #numGrid = gridSizes[(i) / 10 ]
-    numGrid = gridSizes[4]
->>>>>>> main
     
 #def orderParamGraph(noiseparam, orderparam, density):
     #saves data (noise, order parameter, density) for plotting.
